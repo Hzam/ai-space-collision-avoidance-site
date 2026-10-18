@@ -1,0 +1,305 @@
+{
+ "meta": {
+  "title": "Early Collision-Risk Prediction from Real ESA Conjunction Data Linked to Simulated RGB-YOLO Perception and Minimum-Δv Avoidance Maneuver Selection",
+  "description": "Student research prototype: real ESA conjunction data for early collision-risk prediction, linked to simulated onboard RGB-YOLO perception, tracking and minimum-Δv avoidance maneuver selection."
+ },
+ "nav": {
+  "brand": "ESA Risk · RGB-YOLO · Δv",
+  "problem": "Problem",
+  "architecture": "Architecture",
+  "data": "ESA data",
+  "prediction": "Risk prediction",
+  "vision": "RGB-YOLO",
+  "tracking": "Tracking",
+  "maneuver": "Maneuver",
+  "demo": "Demo",
+  "results": "Results",
+  "limitations": "Limitations",
+  "references": "References"
+ },
+ "tag": {
+  "real": "REAL DATA",
+  "sim": "SIMULATED"
+ },
+ "home": {
+  "kicker": "Ibdaa 2027 · Research prototype",
+  "title": "Early Collision-Risk Prediction from Real ESA Conjunction Data Linked to Simulated RGB-YOLO Perception and Minimum-Δv Avoidance Maneuver Selection",
+  "attribution": "Ibdaa 2027 Student Research Project",
+  "lead": "Satellite operators must decide whether to maneuver about two days before the closest approach to a piece of space debris, while the collision risk is still uncertain. This project assesses that risk early from real ESA conjunction messages. When the risk is high, it triggers a simulated onboard camera chain (YOLO detection, tracking, bearing estimation) and searches for the smallest velocity change (Δv) that makes the encounter safe. Results are shown both with perfect information and with realistic perception errors.",
+  "real": "ESA Collision Avoidance Challenge conjunction data (CDMs) and the collision-risk prediction experiment, including the official-test evaluation. The maneuver experiments use the real encounter geometry of these events.",
+  "sim": "RGB imagery, the YOLO onboard-vision experiment, the tracking sequences, and maneuver execution. ESA provides no images, and no real spacecraft was maneuvered.",
+  "cta_demo": "View Interactive Demo",
+  "cta_results": "Results",
+  "k1": "official ESA score of the latest-risk baseline",
+  "s1": "REAL · lower is better; no ML model beat it",
+  "k2": "YOLO mAP50",
+  "s2": "SIMULATED · held-out synthetic images",
+  "k3": "typical bearing error",
+  "s3": "SIMULATED · 1 of 20 sequences failed",
+  "k4": "maneuver plans still safe with realistic perception error",
+  "s4": "SIMULATED · 10 km tracking, 3σ margin (100% with perfect information)"
+ },
+ "problem": {
+  "title": "Problem",
+  "p1": "Thousands of tracked debris objects cross the orbits of active satellites. For each close approach (a <i>conjunction</i>), operators receive a sequence of Conjunction Data Messages (CDMs). Each CDM predicts the miss distance, the uncertainty of both positions and a collision probability.",
+  "p2": "The risk is only well known shortly before the time of closest approach (TCA). A maneuver, however, has to be planned and approved earlier, typically about two days before TCA. Early CDMs are uncertain: the reported risk can rise or fall sharply in the last day.",
+  "p3": "Prediction alone is therefore not sufficient. A warning has to lead to an action (more observation, onboard sensing, maneuver planning), and that action must remain safe when its inputs contain errors. This project studies the full chain and measures where it is strong and where it is weak.",
+  "fig": "REAL ESA event: CDM-reported risk over time. Only CDMs at least 2 days before TCA are used as input; the final value (star) is the label to be predicted."
+ },
+ "arch": {
+  "title": "System architecture",
+  "intro": "Blue blocks use real ESA data; orange blocks are simulations. The boundary between the two is the risk trigger.",
+  "real_zone": "REAL ESA DATA",
+  "sim_zone": "SIMULATION",
+  "b1": "ESA CDM history (≥ 2 days before TCA)",
+  "b2": "Early collision-risk assessment",
+  "b3": "Risk / observation trigger",
+  "b4": "Synthetic onboard RGB camera",
+  "b5": "Fine-tuned pretrained YOLO",
+  "b6": "Multi-frame tracking",
+  "b7": "Bearing / angular motion",
+  "b8": "Maneuver candidate search",
+  "b9": "Minimum-Δv selection + check",
+  "caption": "Pipeline. The simulated images are not images of the ESA events (ESA provides no imagery); the maneuver search uses the real encounter geometry of the triggered ESA event."
+ },
+ "data": {
+  "title": "ESA data",
+  "banner": "REAL DATA — ESA Collision Avoidance Challenge (Kelvins), CDMs from 2015–2019",
+  "p1": "The official dataset is published by ESA on Zenodo (<a href=\"https://doi.org/10.5281/zenodo.4463683\" rel=\"noopener\">doi:10.5281/zenodo.4463683</a>, CC BY 4.0). It is not re-hosted here. Each row is one CDM with 103 recorded quantities; {{esa_data.train_file_cdms}} CDMs in {{esa_data.train_file_events}} events form the training file.",
+  "terms": [
+   "<b>CDM</b> (Conjunction Data Message): one forecast of a close approach, with miss distance, relative speed, position uncertainties and collision probability.",
+   "<b>Event</b>: all CDMs about the same close approach, ordered in time.",
+   "<b>Target</b>: the ESA satellite being protected. <b>Chaser</b>: the other object (debris, rocket body, payload or unknown).",
+   "<b>TCA</b>: time of closest approach; each CDM states how many days remain until TCA.",
+   "<b>Final risk</b>: the log10 collision probability in the last CDM of an event (less than 1 day before TCA). An event is <i>high-risk</i> if the final risk ≥ 10⁻⁶ (the challenge definition)."
+  ],
+  "protocol_title": "Official test protocol",
+  "protocol": [
+   "Inputs: only CDMs released at least 2 days before TCA; the final CDM is never an input.",
+   "Training events: {{esa_data.train_eligible_events}} eligible events, of which only {{esa_data.train_eligible_high_risk}} are high-risk.",
+   "Official held-out test set: {{esa_data.test_events}} events ({{esa_data.test_high_risk}} high-risk) with labels released by ESA after the competition. It was used once, for final evaluation only.",
+   "Splitting is by event, never by row, and model thresholds come from cross-validation on training events only."
+  ],
+  "fig": "REAL ESA data: distribution of the final risk (log scale). The dashed line marks the high-risk boundary 10⁻⁶."
+ },
+ "pred": {
+  "title": "AI risk prediction",
+  "banner": "REAL DATA — evaluated on the official ESA test set ({{esa_data.test_events}} events, {{esa_data.test_high_risk}} high-risk)",
+  "p1": "Four approaches were compared using 26 interpretable features from the CDMs available two days before TCA: (A) the latest reported risk, the published baseline; (B) logistic regression with 3 features; (C) Random Forest; (D) XGBoost. F2 weights recall more than precision, because missing a dangerous event is worse than a false alarm. PR-AUC measures how well events are ranked. The official ESA competition score is MSE_HR / F2 (lower is better).",
+  "neg_title": "Main finding:",
+  "neg": "The machine-learning classifiers tested in this project did not outperform the published latest-risk baseline on the official ESA competition score ({{official_metric.A_latest_risk_baseline.score_MSE_HR_over_F2|3}} for the baseline vs {{official_metric.C_random_forest.score_MSE_HR_over_F2|3}} for the best classifier). The baseline result reproduces the published value exactly.",
+  "roles": "Random Forest provided stronger event ranking by PR-AUC ({{prediction.official_test.C_random_forest.pr_auc|3}} vs {{prediction.official_test.A_latest_risk_baseline.pr_auc|3}}). It can be interpreted as a prioritisation signal (which events to observe first), not as proof that it replaces the baseline trigger. The latest-risk rule remains the strongest trigger.",
+  "fig_pr": "Precision–recall curves on the official test set.",
+  "fig_early": "Earlier warnings are harder: F2 when deciding 2–5 days before TCA.",
+  "decision_title": "Decision layer",
+  "decision_p": "Predictions are mapped to CONTINUE MONITORING, PREPARE / OBSERVE, or HIGH-RISK TRIGGER. The evaluated layer uses the Random Forest rule that was fixed by training cross-validation before the test set was opened. It triggered {{decision.trigger_tp_fp_fn.0}} of {{esa_data.test_high_risk}} high-risk events with {{decision.trigger_tp_fp_fn.1}} false alarms. All thresholds are experimental design values, not operational rules."
+ },
+ "vision": {
+  "title": "RGB-YOLO perception",
+  "banner": "SIMULATED RGB EXPERIMENT — synthetic images with exact ground truth",
+  "p1": "A pinhole-camera renderer creates synthetic onboard scenes of satellites, debris fragments and rocket bodies. It varies apparent size (3–220 px), attitude, sunlight, exposure, star fields, Earth limb, blur and sensor noise, and records the exact position of the object. The images were split into {{yolo.dataset.train.images}} training, {{yolo.dataset.val.images}} validation and {{yolo.dataset.test.images}} held-out test scenes, plus a controlled difficulty sweep.",
+  "p2": "A COCO-pretrained YOLO26-nano detector was <b>fine-tuned</b> on these images (not trained from scratch). On held-out synthetic test images it reached mAP50 = {{yolo.test.mAP50|3}}. Very small, dim or noisy targets are often missed, and some star-like false detections occur; genuine failure examples are shown below.",
+  "fig_examples": "SIMULATED examples (green = ground truth, red = YOLO). Top row: easy, medium and two hard cases. Bottom row: two missed objects and two false detections. Failures are shown on purpose.",
+  "fig_sweep": "SIMULATED controlled sweep: detection recall vs target size, exposure and sensor noise (40 images per point, 95% intervals)."
+ },
+ "tracking": {
+  "title": "Multi-frame tracking and bearing",
+  "banner": "SIMULATED — {{tracking.n_sequences}} synthetic approach sequences",
+  "p1": "YOLO runs on every frame. A Kalman filter links consecutive detections into a track, and the camera geometry converts each tracked pixel into a bearing (line-of-sight direction). Estimates are compared with the simulator's ground truth.",
+  "range_title": "A single monocular RGB camera measures direction (bearing), not direct physical range.",
+  "range": "An exploratory experiment estimated range from apparent size with an assumed object size. It had a median error of about {{tracking.exploratory_range_from_apparent_size.range_rel_error_median|pct0}} even when the object size was known exactly, so it is <b>not</b> the basis of any safety claim.",
+  "fig": "SIMULATED sequence: bearing angles (azimuth and elevation) of the ground truth and of the Kalman track over time, with the per-frame bearing error."
+ },
+ "maneuver": {
+  "title": "Maneuver selection",
+  "banner": "SIMULATED MANEUVER EXPERIMENT — on the real encounter geometry of triggered ESA events",
+  "p1": "For each triggered test event, the real CDM geometry (miss vector, relative velocity, covariances, object sizes) is used to evaluate 1,830 candidate impulses: 5 execution times (2 days to 6 hours before TCA) × 6 directions (radial, along-track and cross-track, each ±) × 61 Δv magnitudes. Clohessy–Wiltshire relative-motion equations give the satellite's displacement at TCA; the new miss distance and collision probability are then recomputed.",
+  "p2": "A candidate is safe if the miss distance ≥ {{maneuver.safe_miss_m|0}} m and the collision probability ≤ 10⁻⁶ (experimental design thresholds). The safe candidate with the smallest Δv is selected.",
+  "perfect_title": "Perfect-information result",
+  "perfect": [
+   "{{maneuver.triggered_events}} triggered events; {{maneuver.needing_maneuver}} needed a maneuver.",
+   "Safe candidate found for {{maneuver.feasible}} / {{maneuver.needing_maneuver}}.",
+   "Median selected Δv: {{maneuver.dv_median_mps|cms}} cm/s; along-track burns were always the cheapest, and earlier burns cost less."
+  ],
+  "real_title": "Realistic perception-error result",
+  "realistic": [
+   "The cheapest plan sits exactly on the safety limit, so estimation errors matter.",
+   "With the typical bearing error at a 10 km tracking range and a 3σ safety margin, <b>{{error_propagation.safe_rate.typical_10km_k3|pct}}</b> of plans remained safe ({{error_propagation.safe_rate.typical_10km_k0|pct}} without the margin).",
+   "Including tracking failures: {{error_propagation.safe_rate.with_failures_10km_k3|pct}} safe with the margin."
+  ],
+  "fig_plane": "SIMULATED maneuver on REAL geometry (ESA event 880, perfect information): encounter plane before (red) and after (green), with 1σ/3σ uncertainty ellipses and the 1 km safety circle.",
+  "fig_lead": "Minimum safe Δv vs execution time for all triggered events that needed a maneuver (perfect information)."
+ },
+ "demo": {
+  "title": "Interactive demo (precomputed)",
+  "intro": "Step through the full chain for real ESA test events. Each event shows the real CDM history and prediction. Only triggered events continue into the simulated camera and maneuver steps.",
+  "choose": "ESA event:",
+  "prev": "◀ Back",
+  "next": "Next ▶",
+  "event": "Event",
+  "kind_true_positive": "correctly triggered high-risk event",
+  "kind_true_negative": "low-risk event (no trigger)",
+  "kind_false_negative": "missed high-risk event (failure)",
+  "kind_false_positive": "false alarm (failure)",
+  "precomputed": "All values were computed in advance by the project's verified pipeline. The website does not train or run any model.",
+  "steps": {
+   "s1": "CDM history",
+   "s2": "AI prediction",
+   "s3": "Decision",
+   "s4": "Synthetic RGB",
+   "s5": "YOLO detections",
+   "s6": "Tracking",
+   "s7": "Bearing",
+   "s8": "Candidates",
+   "s9": "Selected",
+   "s10": "Before / after"
+  },
+  "explain": {
+   "s1": "Real ESA event {event_id}: {n_cdms} CDMs released at least 2 days before closest approach. Each point is the risk reported in one CDM. The dashed red line is the high-risk boundary.",
+   "s2": "The Random Forest reads features from these CDMs and outputs P(high final risk) = {prob}. The trigger threshold {thr} was chosen by cross-validation on training events only. The latest reported risk is 10^{latest}.",
+   "s3": "Decision: {state}. Ground truth, hidden from the model: the final risk was 10^{final} ({truth}). Low-risk events stop here and are only monitored.",
+   "s4": "The trigger starts the SIMULATED onboard camera: {frames} synthetic frames of an approaching object. Drag the slider or press play. These images are generated by our renderer; they are not ESA imagery.",
+   "s5": "The fine-tuned YOLO finds the object in {det}% of frames (green = detected, red = missed). Early frames are missed because the object is only a few pixels wide.",
+   "s6": "The Kalman filter turns noisy detections into a smooth track (orange) that follows the true image path (grey). Median detection-centre error: {center} px.",
+   "s7": "Camera intrinsics convert each tracked pixel into line-of-sight angles. Bearing error RMSE {brmse}°. Exploratory only: range from apparent size with an assumed size gives a predicted closest approach of {pmiss} m vs {tmiss} m true; no safety decision relies on this.",
+   "s8": "{nc} candidate maneuvers on the REAL encounter geometry: each line is one direction, and the dashed line is the required distance ({safe} m + {margin} m perception margin).",
+   "s9": "Selected (red circle): {dir} burn of {dv} cm/s, {lead} days before TCA. It is the smallest Δv that satisfies both the distance and the Pc constraints ({ns} of {nc} candidates are safe).",
+   "s10": "Encounter plane before (red, miss {miss0} m, Pc {pc0}) and after (green, miss {miss1} m, Pc {pc1}). Ellipses are 1σ and 3σ uncertainty; the dotted circle is the {safe} m safety distance; the black dot is the combined object size."
+  },
+  "cutoff": "2-day cutoff",
+  "x_days": "days before TCA",
+  "y_risk": "log10 risk",
+  "threshold": "trigger threshold",
+  "prob_axis": "predicted probability of high final risk",
+  "thresholds_experimental": "Thresholds are configurable experimental values, not operational criteria.",
+  "truth_label": "True outcome (from the final CDM)",
+  "truth_high": "HIGH risk",
+  "truth_low": "low risk",
+  "frame": "Synthetic frame",
+  "x_frame": "frame number",
+  "det_legend": "green = detected (IoU ≥ 0.5), red = missed",
+  "track_legend": "grey = truth, orange = Kalman track (pixels)",
+  "y_bearing": "bearing error [deg]",
+  "x_dv": "Δv [cm/s] (log)",
+  "y_miss": "closest approach [m] (log)",
+  "required": "required",
+  "lead_note": "Curves shown for the execution time of the selected maneuver.",
+  "ba_legend": "red = before, green = after (encounter plane, metres)"
+ },
+ "states": {
+  "HIGH_RISK_TRIGGER": "HIGH RISK — MODULES TRIGGERED",
+  "PREPARE_OBSERVATION": "PREPARE / MORE OBSERVATION",
+  "CONTINUE_MONITORING": "CONTINUE MONITORING"
+ },
+ "models": {
+  "A_latest_risk_baseline": "A: latest reported risk (baseline)",
+  "B_logistic_simple": "B: logistic regression, 3 features",
+  "C_random_forest": "C: Random Forest (selected)",
+  "D_xgboost": "D: XGBoost"
+ },
+ "models_short": {
+  "A_latest_risk_baseline": "A: baseline",
+  "B_logistic_simple": "B: logistic",
+  "C_random_forest": "C: RF",
+  "D_xgboost": "D: XGBoost"
+ },
+ "results": {
+  "title": "Results",
+  "intro": "All values below come from the project's verified result file and are identical on the English and Arabic pages.",
+  "h_pred": "ESA risk prediction (REAL, official test set)",
+  "h_official": "Official ESA competition metric (REAL)",
+  "h_early": "Early-warning F2 vs decision time (REAL)",
+  "h_yolo": "YOLO on held-out synthetic images (SIMULATED)",
+  "h_track": "Tracking and bearing (SIMULATED)",
+  "h_man": "Maneuver (SIMULATED on REAL geometry)",
+  "h_prop": "Safe plans under realistic perception error (SIMULATED, Monte Carlo)",
+  "fig_cm": "Confusion matrices on the official test set (REAL).",
+  "fig_pc": "Check of the collision-probability calculation against the risk reported in real ESA CDMs."
+ },
+ "limits": {
+  "title": "Limitations",
+  "items": [
+   "The machine-learning models did not beat the ESA latest-risk baseline on the official competition metric (or on F2); they only ranked events better.",
+   "Only {{esa_data.train_eligible_high_risk}} high-risk training events exist after the official rules, and warnings 3–5 days ahead are clearly weaker.",
+   "YOLO can miss very small, dim or noisy targets, and it produces some star-like false detections.",
+   "The tracker failed on {{tracking.sequences_with_track_failure}} of {{tracking.n_sequences}} tested sequences (it locked onto a false detection).",
+   "A monocular RGB camera does not directly provide range; the apparent-size range estimate has substantial error (about {{tracking.exploratory_range_from_apparent_size.range_rel_error_median|pct0}}).",
+   "The images are synthetic and the visual scenario is slow and close-range, whereas real conjunctions occur at about {{maneuver.median_relative_speed_kms|0}} km/s.",
+   "The maneuver model is simplified (Clohessy–Wiltshire dynamics, no drag or J2; approximate collision probability; experimental thresholds).",
+   "Nominal minimum-Δv solutions may lose safety under perception errors (see the realistic-error result).",
+   "This is a research simulation, not flight-qualified software. No real spacecraft was maneuvered."
+  ]
+ },
+ "refs": {
+  "title": "References"
+ },
+ "references": [
+  "Uriot T., Izzo D., Simões L.F., et al. Spacecraft collision avoidance challenge: Design and results of a machine learning competition. <i>Astrodynamics</i> 6(2):121–140, 2022. <a href=\"https://doi.org/10.1007/s42064-021-0101-5\" rel=\"noopener\">doi:10.1007/s42064-021-0101-5</a>",
+  "ESA Advanced Concepts Team & ESA Space Debris Office. Collision Avoidance Challenge – Dataset. Zenodo, 2021. <a href=\"https://doi.org/10.5281/zenodo.4463683\" rel=\"noopener\">doi:10.5281/zenodo.4463683</a>",
+  "Merz K., Bastida Virgili B., Braun V., et al. Current collision avoidance service by ESA's Space Debris Office. Proc. 7th European Conference on Space Debris, ESA, 2017. <a href=\"https://conference.sdo.esoc.esa.int/proceedings/sdc7/paper/1017\" rel=\"noopener\">ESA proceedings</a>",
+  "NASA. Spacecraft Conjunction Assessment and Collision Avoidance Best Practices Handbook, NASA/SP-20205011318. <a href=\"https://ntrs.nasa.gov/citations/20260000453\" rel=\"noopener\">NASA NTRS</a>",
+  "Akella M.R., Alfriend K.T. Probability of collision between space objects. <i>J. Guidance, Control, and Dynamics</i> 23(5):769–772, 2000. <a href=\"https://doi.org/10.2514/2.4611\" rel=\"noopener\">doi:10.2514/2.4611</a>",
+  "Alfano S. A numerical implementation of spherical object collision probability. <i>J. Astronautical Sciences</i> 53(1):103–109, 2005. <a href=\"https://doi.org/10.1007/BF03546397\" rel=\"noopener\">doi:10.1007/BF03546397</a>",
+  "Clohessy W.H., Wiltshire R.S. Terminal guidance system for satellite rendezvous. <i>J. Aerospace Sciences</i> 27(9):653–658, 1960. <a href=\"https://doi.org/10.2514/8.8704\" rel=\"noopener\">doi:10.2514/8.8704</a>",
+  "Bombardelli C., Hernando-Ayuso J. Optimal impulsive collision avoidance in low Earth orbit. <i>J. Guidance, Control, and Dynamics</i> 38(2):217–225, 2015. <a href=\"https://doi.org/10.2514/1.G000742\" rel=\"noopener\">doi:10.2514/1.G000742</a>",
+  "Gonzalo J.L., Colombo C., Di Lizia P. Analytical framework for space debris collision avoidance maneuver design. <i>J. Guidance, Control, and Dynamics</i> 44(3):469–487, 2021. <a href=\"https://doi.org/10.2514/1.G005398\" rel=\"noopener\">doi:10.2514/1.G005398</a>",
+  "Kisantal M., Sharma S., Park T.H., et al. Satellite pose estimation challenge: Dataset, competition design, and results. <i>IEEE Trans. Aerospace and Electronic Systems</i> 56(5):4083–4098, 2020. <a href=\"https://doi.org/10.1109/TAES.2020.2989063\" rel=\"noopener\">doi:10.1109/TAES.2020.2989063</a>",
+  "Woffinden D.C., Geller D.K. Observability criteria for angles-only navigation. <i>IEEE Trans. Aerospace and Electronic Systems</i> 45(3):1194–1208, 2009. <a href=\"https://doi.org/10.1109/TAES.2009.5259193\" rel=\"noopener\">doi:10.1109/TAES.2009.5259193</a>",
+  "Redmon J., Divvala S., Girshick R., Farhadi A. You only look once: Unified, real-time object detection. CVPR 2016, 779–788. <a href=\"https://doi.org/10.1109/CVPR.2016.91\" rel=\"noopener\">doi:10.1109/CVPR.2016.91</a>",
+  "Kalman R.E. A new approach to linear filtering and prediction problems. <i>J. Basic Engineering</i> 82(1):35–45, 1960. <a href=\"https://doi.org/10.1115/1.3662552\" rel=\"noopener\">doi:10.1115/1.3662552</a>"
+ ],
+ "footer": {
+  "line1": "Ibdaa 2027 Student Research Project",
+  "line2": "Research prototype — real ESA conjunction data with simulated onboard perception and maneuver experiments.",
+  "data": "ESA Collision Avoidance Challenge data © ESA, CC BY 4.0 (doi:10.5281/zenodo.4463683)."
+ },
+ "badge": {
+  "real": "REAL DATA",
+  "sim": "SIMULATED",
+  "real_geom": "REAL GEOMETRY"
+ },
+ "tbl": {
+  "model": "Model",
+  "precision": "Precision",
+  "recall": "Recall",
+  "official": "Official score (↓)",
+  "cutoff": "Decision time [days before TCA]",
+  "events": "Test events (high-risk)",
+  "metric": "Metric",
+  "value": "Value",
+  "main_model": "Main model (seed 0)",
+  "three_seeds": "3 training seeds (mean ± std)",
+  "fp_bg": "False detections on object-free images",
+  "fps": "Images per second (RTX 4090)",
+  "pred_note": "Official ESA test set. F2 interval: 95% event-level bootstrap. Official score = MSE_HR / F2 (lower is better). The bold row is the published baseline.",
+  "official_note": "MSE_HR = mean squared error of the predicted log10 risk on truly high-risk events. The baseline reproduces the published values (MSE_HR 0.513, F2 0.739, score 0.694). Classifiers submit the latest reported risk when they flag an event and −6.001 otherwise (fixed before evaluation)."
+ },
+ "trk": {
+  "seq": "Sequences",
+  "frames": "frames",
+  "det": "Detection rate per frame",
+  "bearing": "Typical bearing RMSE (median over sequences)",
+  "fail": "Sequences with tracking failure",
+  "center": "Median detection-centre error",
+  "range": "Range from apparent size (median error)",
+  "exploratory": "EXPLORATORY"
+ },
+ "man": {
+  "triggered": "Triggered test events",
+  "already": "Already safe without a maneuver",
+  "need": "Needing a maneuver",
+  "feasible": "Safe candidate found",
+  "perfect": "perfect information",
+  "dv": "Median selected Δv",
+  "safe_real": "Plans still safe with realistic perception error",
+  "real_cfg": "typical bearing error, 10 km, 3σ margin",
+  "cw": "CW model max error vs two-body integration",
+  "pc": "Collision-probability check: agreement with ESA high-risk flag"
+ },
+ "prop": {
+  "err": "Bearing error",
+  "typical": "Typical ({{tracking.track_bearing_rmse_deg_median_over_sequences|3}}°)",
+  "with_failures": "Including tracking failures",
+  "note": "Percentage of minimum-Δv plans that remain safe on the true geometry when the miss vector is estimated with bearing error × tracking range (1, 10 or 50 km; assumed). k = robust margin in standard deviations. Perfect information: 100%. Monte Carlo: {{error_propagation.events}} events × {{error_propagation.mc_samples}} draws per cell."
+ }
+}

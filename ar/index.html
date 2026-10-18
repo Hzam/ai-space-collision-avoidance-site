@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التنبؤ المبكر بمخاطر الاصطدام من بيانات ESA وربطه برؤية RGB-YOLO ومحاكاة اختيار مناورة تفاد بأقل تغير في السرعة</title>
+<meta name="description" content="نموذج بحثي طلابي: بيانات اقتراب حقيقية من ESA للتنبؤ المبكر بمخاطر الاصطدام، مرتبطة بمحاكاة إدراك بصري على متن القمر (RGB-YOLO) وتتبع واختيار مناورة تفادٍ بأقل تغير في السرعة.">
+<meta name="author" content="Ibdaa 2027 Student Research Project">
+<link rel="alternate" hreflang="en" href="../en/">
+<link rel="alternate" hreflang="ar" href="../ar/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='5' fill='%231d4f91'/%3E%3Cellipse cx='16' cy='16' rx='14' ry='5' fill='none' stroke='%23b45309' stroke-width='2'/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#home" data-i18n="nav.brand"></a>
+  <nav class="sections" aria-label="sections">
+    <a href="#problem" data-i18n="nav.problem"></a><a href="#architecture" data-i18n="nav.architecture"></a>
+    <a href="#data" data-i18n="nav.data"></a><a href="#prediction" data-i18n="nav.prediction"></a>
+    <a href="#vision" data-i18n="nav.vision"></a><a href="#tracking" data-i18n="nav.tracking"></a>
+    <a href="#maneuver" data-i18n="nav.maneuver"></a><a href="#demo-section" data-i18n="nav.demo"></a>
+    <a href="#results" data-i18n="nav.results"></a><a href="#limitations" data-i18n="nav.limitations"></a>
+    <a href="#references" data-i18n="nav.references"></a>
+  </nav>
+  <div class="lang"><a href="../en/" lang="en" hreflang="en">English</a> | <span class="current" lang="ar">العربية</span></div>
+</div></header>
+
+<main>
+<!-- 1. HOME -->
+<section class="hero" id="home"><div class="wrap">
+  <div class="kicker" data-i18n="home.kicker"></div>
+  <h1 data-i18n="home.title"></h1>
+  <div class="attribution" data-i18n="home.attribution"></div>
+  <p class="lead" data-i18n="home.lead"></p>
+  <div class="disclosure">
+    <div class="real-box"><span class="tag real" data-i18n="tag.real"></span><p data-i18n="home.real"></p></div>
+    <div class="sim-box"><span class="tag sim" data-i18n="tag.sim"></span><p data-i18n="home.sim"></p></div>
+  </div>
+  <div class="btn-row">
+    <a class="btn" href="#demo-section" data-i18n="home.cta_demo"></a>
+    <a class="btn secondary" href="#results" data-i18n="home.cta_results"></a>
+  </div>
+  <div class="grid k4" style="margin-top:18px">
+    <div class="card stat"><div class="v" data-stat="official_metric.A_latest_risk_baseline.score_MSE_HR_over_F2|3"></div><div class="k" data-i18n="home.k1"></div><div class="s" data-i18n="home.s1"></div></div>
+    <div class="card stat"><div class="v" data-stat="yolo.test.mAP50|3"></div><div class="k" data-i18n="home.k2"></div><div class="s" data-i18n="home.s2"></div></div>
+    <div class="card stat"><div class="v"><span data-stat="tracking.track_bearing_rmse_deg_median_over_sequences|3"></span>°</div><div class="k" data-i18n="home.k3"></div><div class="s" data-i18n="home.s3"></div></div>
+    <div class="card stat"><div class="v" data-stat="error_propagation.safe_rate.typical_10km_k3|pct"></div><div class="k" data-i18n="home.k4"></div><div class="s" data-i18n="home.s4"></div></div>
+  </div>
+</div></section>
+
+<!-- 2. PROBLEM -->
+<section id="problem"><div class="wrap">
+  <h2 data-i18n="problem.title"></h2>
+  <p data-i18n="problem.p1"></p>
+  <p data-i18n="problem.p2"></p>
+  <p data-i18n="problem.p3"></p>
+  <figure><img src="../assets/img/pred_temporal_example.png" alt="" loading="lazy"><figcaption data-i18n="problem.fig"></figcaption></figure>
+</div></section>
+
+<!-- 3. ARCHITECTURE -->
+<section id="architecture"><div class="wrap">
+  <h2 data-i18n="arch.title"></h2>
+  <p data-i18n="arch.intro"></p>
+  <figure>
+  <svg class="arch" viewBox="0 0 1000 330" role="img" aria-labelledby="archcap" direction="ltr">
+    <rect x="10" y="20" width="420" height="290" rx="10" fill="#e8f0fb" stroke="#1d5fbf"/>
+    <rect x="450" y="20" width="540" height="290" rx="10" fill="#fdf1e3" stroke="#b45309"/>
+    <text x="220" y="48" text-anchor="middle" style="font-weight:700;fill:#1d5fbf;font-size:15px" data-i18n="arch.real_zone"></text>
+    <text x="720" y="48" text-anchor="middle" style="font-weight:700;fill:#b45309;font-size:15px" data-i18n="arch.sim_zone"></text>
+    <g style="font-size:13px">
+      <rect x="40" y="75" width="360" height="52" rx="6" fill="#fff" stroke="#1d5fbf"/><text x="220" y="106" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b1"></text>
+      <rect x="40" y="152" width="360" height="52" rx="6" fill="#fff" stroke="#1d5fbf"/><text x="220" y="183" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b2"></text>
+      <rect x="40" y="229" width="360" height="52" rx="6" fill="#fff" stroke="#1d5fbf"/><text x="220" y="260" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b3"></text>
+      <rect x="480" y="75" width="230" height="52" rx="6" fill="#fff" stroke="#b45309"/><text x="595" y="106" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b4"></text>
+      <rect x="480" y="152" width="230" height="52" rx="6" fill="#fff" stroke="#b45309"/><text x="595" y="183" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b5"></text>
+      <rect x="480" y="229" width="230" height="52" rx="6" fill="#fff" stroke="#b45309"/><text x="595" y="260" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b6"></text>
+      <rect x="740" y="75" width="230" height="52" rx="6" fill="#fff" stroke="#b45309"/><text x="855" y="106" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b7"></text>
+      <rect x="740" y="152" width="230" height="52" rx="6" fill="#fff" stroke="#b45309"/><text x="855" y="183" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b8"></text>
+      <rect x="740" y="229" width="230" height="52" rx="6" fill="#fff" stroke="#b45309"/><text x="855" y="260" text-anchor="middle" style="fill:#1a2230;font-size:14px" data-i18n="arch.b9"></text>
+    </g>
+    <g stroke="#4b5563" stroke-width="2" fill="none" marker-end="url(#ah)">
+      <path d="M220 127 V150"/><path d="M220 204 V227"/>
+      <path d="M400 255 H440 V101 H478"/>
+      <path d="M595 127 V150"/><path d="M595 204 V227"/>
+      <path d="M710 255 H725 V101 H738"/>
+      <path d="M855 127 V150"/><path d="M855 204 V227"/>
+    </g>
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#4b5563"/></marker></defs>
+  </svg>
+  <figcaption id="archcap" data-i18n="arch.caption"></figcaption>
+  </figure>
+</div></section>
+
+<!-- 4. ESA DATA -->
+<section id="data"><div class="wrap">
+  <h2 data-i18n="data.title"></h2>
+  <div class="banner real" data-i18n="data.banner"></div>
+  <p data-i18n="data.p1"></p>
+  <ul class="clean" data-list="data.terms"></ul>
+  <h3 data-i18n="data.protocol_title"></h3>
+  <ul class="clean" data-list="data.protocol"></ul>
+  <figure><img src="../assets/img/pred_risk_distribution.png" alt="" loading="lazy"><figcaption data-i18n="data.fig"></figcaption></figure>
+</div></section>
+
+<!-- 5. PREDICTION -->
+<section id="prediction"><div class="wrap">
+  <h2 data-i18n="pred.title"></h2>
+  <div class="banner real" data-i18n="pred.banner"></div>
+  <p data-i18n="pred.p1"></p>
+  <div class="table-wrap" id="pred-table"></div>
+  <div class="callout neg"><strong data-i18n="pred.neg_title"></strong> <span data-i18n="pred.neg"></span></div>
+  <p data-i18n="pred.roles"></p>
+  <div class="grid k2">
+    <figure><img src="../assets/img/pred_pr_curves.png" alt="" loading="lazy"><figcaption data-i18n="pred.fig_pr"></figcaption></figure>
+    <figure><img src="../assets/img/pred_early_warning.png" alt="" loading="lazy"><figcaption data-i18n="pred.fig_early"></figcaption></figure>
+  </div>
+  <h3 data-i18n="pred.decision_title"></h3>
+  <p data-i18n="pred.decision_p"></p>
+</div></section>
+
+<!-- 6. RGB-YOLO -->
+<section id="vision"><div class="wrap">
+  <h2 data-i18n="vision.title"></h2>
+  <div class="banner sim" data-i18n="vision.banner"></div>
+  <p data-i18n="vision.p1"></p>
+  <p data-i18n="vision.p2"></p>
+  <div class="table-wrap" id="yolo-table"></div>
+  <div class="grid k2">
+    <figure><img src="../assets/img/yolo_examples.jpg" alt="" loading="lazy"><figcaption data-i18n="vision.fig_examples"></figcaption></figure>
+    <figure><img src="../assets/img/yolo_sweep.png" alt="" loading="lazy"><figcaption data-i18n="vision.fig_sweep"></figcaption></figure>
+  </div>
+</div></section>
+
+<!-- 7. TRACKING -->
+<section id="tracking"><div class="wrap">
+  <h2 data-i18n="tracking.title"></h2>
+  <div class="banner sim" data-i18n="tracking.banner"></div>
+  <p data-i18n="tracking.p1"></p>
+  <div class="callout"><strong data-i18n="tracking.range_title"></strong> <span data-i18n="tracking.range"></span></div>
+  <div class="table-wrap" id="track-table"></div>
+  <figure><img src="../assets/img/tracking_bearing_event880.png" alt="" loading="lazy"><figcaption data-i18n="tracking.fig"></figcaption></figure>
+</div></section>
+
+<!-- 8. MANEUVER -->
+<section id="maneuver"><div class="wrap">
+  <h2 data-i18n="maneuver.title"></h2>
+  <div class="banner sim" data-i18n="maneuver.banner"></div>
+  <p data-i18n="maneuver.p1"></p>
+  <p data-i18n="maneuver.p2"></p>
+  <div class="grid k2">
+    <div class="card"><div class="kicker" data-i18n="maneuver.perfect_title"></div><ul class="clean" data-list="maneuver.perfect"></ul></div>
+    <div class="card" style="border-color:#f3c58b"><div class="kicker" data-i18n="maneuver.real_title"></div><ul class="clean" data-list="maneuver.realistic"></ul></div>
+  </div>
+  <div class="table-wrap" id="prop-table"></div>
+  <div class="grid k2">
+    <figure><img src="../assets/img/maneuver_encounter_plane.png" alt="" loading="lazy"><figcaption data-i18n="maneuver.fig_plane"></figcaption></figure>
+    <figure><img src="../assets/img/maneuver_dv_vs_lead_time.png" alt="" loading="lazy"><figcaption data-i18n="maneuver.fig_lead"></figcaption></figure>
+  </div>
+</div></section>
+
+<!-- 9. DEMO -->
+<section id="demo-section"><div class="wrap">
+  <h2 data-i18n="demo.title"></h2>
+  <p data-i18n="demo.intro"></p>
+  <div class="demo" id="demo">
+    <div class="demo-controls">
+      <label for="demo-event" data-i18n="demo.choose"></label>
+      <select id="demo-event"></select>
+      <button id="demo-prev" data-i18n="demo.prev"></button>
+      <button id="demo-next" class="primary" data-i18n="demo.next"></button>
+    </div>
+    <div class="steps" id="demo-steps"></div>
+    <div class="stage"><div class="viz" id="demo-viz"></div><div class="explain" id="demo-explain"></div></div>
+  </div>
+  <p class="kicker" style="margin-top:10px" data-i18n="demo.precomputed"></p>
+</div></section>
+
+<!-- 10. RESULTS -->
+<section id="results"><div class="wrap">
+  <h2 data-i18n="results.title"></h2>
+  <p data-i18n="results.intro"></p>
+  <h3 data-i18n="results.h_pred"></h3><div class="table-wrap" id="res-pred"></div>
+  <h3 data-i18n="results.h_official"></h3><div class="table-wrap" id="res-official"></div>
+  <h3 data-i18n="results.h_early"></h3><div class="table-wrap" id="res-early"></div>
+  <h3 data-i18n="results.h_yolo"></h3><div class="table-wrap" id="res-yolo"></div>
+  <h3 data-i18n="results.h_track"></h3><div class="table-wrap" id="res-track"></div>
+  <h3 data-i18n="results.h_man"></h3><div class="table-wrap" id="res-man"></div>
+  <h3 data-i18n="results.h_prop"></h3><div class="table-wrap" id="res-prop"></div>
+  <div class="grid k2">
+    <figure><img src="../assets/img/pred_confusion_matrices.png" alt="" loading="lazy"><figcaption data-i18n="results.fig_cm"></figcaption></figure>
+    <figure><img src="../assets/img/maneuver_pc_validation.png" alt="" loading="lazy"><figcaption data-i18n="results.fig_pc"></figcaption></figure>
+  </div>
+</div></section>
+
+<!-- 11. LIMITATIONS -->
+<section id="limitations"><div class="wrap">
+  <h2 data-i18n="limits.title"></h2>
+  <ul class="clean" data-list="limits.items"></ul>
+</div></section>
+
+<!-- optional section, rendered only if its text exists in the language file (e.g. acknowledgements added later) -->
+<section id="acknowledgements" hidden><div class="wrap">
+  <h2 data-i18n="ack.title"></h2>
+  <div data-i18n="ack.body"></div>
+</div></section>
+
+<!-- 12. REFERENCES -->
+<section id="references"><div class="wrap">
+  <h2 data-i18n="refs.title"></h2>
+  <ol class="refs" id="ref-list"></ol>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p><strong data-i18n="footer.line1"></strong></p>
+  <p data-i18n="footer.line2"></p>
+  <p data-i18n="footer.data"></p>
+</div></footer>
+<script src="../assets/js/app.js"></script>
+</body>
+</html>
